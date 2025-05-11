@@ -8,31 +8,33 @@ using TMPro;
 
 public class TeleportUI : MonoBehaviour
 {
-    [Header("Car Reference")]
-    public GameObject car;
-    public CesiumGeoreference georeference;
+    [Header("Car reference")]
+    public GameObject car; // car object to teleport
+    public CesiumGeoreference georeference; // georeference component for converting coordinates
 
-    [Header("UI Elements")]
-    public GameObject teleportWindow; // The modal window container
-    public Button openTeleportButton; // Button to open the teleport window
-    public Button closeTeleportButton; // Button to close the teleport window
-    public Button teleportButton;
-    public Button saveButton;
-    public Button deleteButton;
-    public TMP_InputField latitudeInput;
-    public TMP_InputField longitudeInput;
-    public TMP_InputField heightInput;
-    public TMP_InputField locationNameInput;
-    public TMP_Dropdown savedLocationsDropdown;
+    [Header("UI elements")]
+    public GameObject teleportWindow; // Teleport window container
+    public Button openTeleportButton; // button to open the teleport window
+    public Button closeTeleportButton; // button to close the teleport window
+    public Button teleportButton; // button to execute the teleportation
+    public Button saveButton; // button to save the provided coordinates
+    public Button deleteButton; // button to save the selected coordinates
+    public TMP_InputField latitudeInput; // user input for latitude
+    public TMP_InputField longitudeInput; // user input for longitude
+    public TMP_InputField heightInput; // user input for height
+    public TMP_InputField locationNameInput; // user input for location name
+    public TMP_Dropdown savedLocationsDropdown; // dropdown for saved locations
 
-    [Header("Default Location")]
-    public double defaultLatitude = 51.4586; // Reading Rail Station latitude
-    public double defaultLongitude = -0.9725; // Reading Rail Station longitude
+    [Header("Default location")] // default location is Reading Rail Station
+    public double defaultLatitude = 51.4586;
+    public double defaultLongitude = -0.9725;
     public double defaultHeight = 370;
 
+    // Internal variables for storing saved locations
     private string savedLocationsFilePath;
     private Dictionary<string, Vector3d> savedLocations = new Dictionary<string, Vector3d>();
 
+    // Data structure for saving locations
     [System.Serializable]
     private class LocationData
     {
@@ -42,6 +44,7 @@ public class TeleportUI : MonoBehaviour
         public double height;
     }
 
+    // List of locations for JSON serialisation
     [System.Serializable]
     private class LocationsList
     {
@@ -56,7 +59,7 @@ public class TeleportUI : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        // Add listeners to buttons
+        // Add listeners to all the buttons
         openTeleportButton.onClick.AddListener(OpenTeleportWindow);
         closeTeleportButton.onClick.AddListener(CloseTeleportWindow);
         saveButton.onClick.AddListener(SaveLocation);
@@ -68,11 +71,11 @@ public class TeleportUI : MonoBehaviour
         longitudeInput.text = defaultLongitude.ToString();
         heightInput.text = defaultHeight.ToString();
 
-        // Load saved locations
-        LoadSavedLocations();
-        
         // Reset dropdown to avoid default values
         savedLocationsDropdown.ClearOptions();
+
+        // Load saved locations
+        LoadSavedLocations();
         
         // Add a placeholder option
         savedLocationsDropdown.options.Add(new TMP_Dropdown.OptionData("Saved Locations"));
@@ -91,12 +94,13 @@ public class TeleportUI : MonoBehaviour
     {
         string locationName = locationNameInput.text;
         
+        // Handle cases where location name is empty
         if (string.IsNullOrEmpty(locationName))
         {
-            Debug.LogError("Please enter a location name!");
             return;
         }
 
+        // Save location if provided values are valid
         if (double.TryParse(latitudeInput.text, out double latitude) &&
             double.TryParse(longitudeInput.text, out double longitude) &&
             double.TryParse(heightInput.text, out double height))
@@ -104,27 +108,19 @@ public class TeleportUI : MonoBehaviour
             // Save the location
             Vector3d coordinates = new Vector3d(latitude, longitude, height);
             savedLocations[locationName] = coordinates;
+            SaveLocationsToFile();
             
             // Update dropdown
             UpdateDropdown();
             
-            // Save to file
-            SaveLocationsToFile();
-            
             // Clear location name field
             locationNameInput.text = "";
-            
-            Debug.Log($"Saved location '{locationName}': Lat {latitude}, Lng {longitude}, Height {height}");
-        }
-        else
-        {
-            Debug.LogError("Invalid coordinate format!");
         }
     }
 
     private void OnSavedLocationSelected(int index)
     {
-        // Skip if it's the header item (index 0)
+        // Skip the header item (index 0)
         if (index <= 0) return;
 
         string locationName = savedLocationsDropdown.options[index].text;
@@ -133,35 +129,31 @@ public class TeleportUI : MonoBehaviour
             latitudeInput.text = coordinates.x.ToString();
             longitudeInput.text = coordinates.y.ToString();
             heightInput.text = coordinates.z.ToString();
-            
-            Debug.Log($"Selected location: {locationName} with coordinates: Lat {coordinates.x}, Lng {coordinates.y}, Height {coordinates.z}");
         }
     }
 
     private void UpdateDropdown()
     {
-        // Store the current selection
+        // Store the current selection to restore it in a fresh dropdown
         string currentSelection = null;
         if (savedLocationsDropdown.value > 0 && savedLocationsDropdown.value < savedLocationsDropdown.options.Count)
-        {
             currentSelection = savedLocationsDropdown.options[savedLocationsDropdown.value].text;
-        }
         
         // Clear all options
         savedLocationsDropdown.ClearOptions();
         
-        // Add header
+        // Start with re-adding the header
         List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData>
         {
             new TMP_Dropdown.OptionData("Saved Locations")
         };
         
-        // Add locations
+        // Add locations that have been saved
         foreach (string locationName in savedLocations.Keys)
         {
             options.Add(new TMP_Dropdown.OptionData(locationName));
         }
-        
+
         savedLocationsDropdown.AddOptions(options);
         
         // Restore selection if possible
@@ -180,10 +172,13 @@ public class TeleportUI : MonoBehaviour
 
     private void SaveLocationsToFile()
     {
+        // Create a new locations dictionary
         LocationsList locationsList = new LocationsList();
         
+        // Loop over existing saved locations
         foreach (var location in savedLocations)
         {
+            // Add each location to the list
             locationsList.locations.Add(new LocationData
             {
                 name = location.Key,
@@ -193,32 +188,31 @@ public class TeleportUI : MonoBehaviour
             });
         }
         
+        // Serialise the list to JSON and save it to file
         string json = JsonUtility.ToJson(locationsList, true);
         File.WriteAllText(savedLocationsFilePath, json);
-        
-        Debug.Log($"Saved locations to: {savedLocationsFilePath}");
     }
 
     private void LoadSavedLocations()
     {
+        // Check if the save file exists
         if (File.Exists(savedLocationsFilePath))
         {
             try 
             {
+                // Unpack (deserialise) the JSON file
                 string json = File.ReadAllText(savedLocationsFilePath);
                 LocationsList locationsList = JsonUtility.FromJson<LocationsList>(json);
                 
+                // Clear existing locations and repopulate with loaded data
                 savedLocations.Clear();
                 foreach (var location in locationsList.locations)
                 {
                     savedLocations[location.name] = new Vector3d(location.latitude, location.longitude, location.height);
                 }
-                
-                Debug.Log($"Loaded {savedLocations.Count} saved locations");
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error loading saved locations: {e.Message}");
                 // Create a new file if the existing one is corrupted
                 savedLocations.Clear();
                 SaveLocationsToFile();
@@ -228,6 +222,7 @@ public class TeleportUI : MonoBehaviour
 
     public void TeleportCar()
     {
+        // Check if the input fields are valid
         if (double.TryParse(latitudeInput.text, out double latitude) &&
             double.TryParse(longitudeInput.text, out double longitude) &&
             double.TryParse(heightInput.text, out double height))
@@ -244,14 +239,8 @@ public class TeleportUI : MonoBehaviour
             // Convert double3 to Vector3 for setting transform position
             car.transform.position = new Vector3((float)unityPosition.x, (float)unityPosition.y, (float)unityPosition.z);
             
-            Debug.Log($"Teleported car to: Lat {latitude}, Lng {longitude}, Height {height}");
-            
             // Close the window after teleporting
             CloseTeleportWindow();
-        }
-        else
-        {
-            Debug.LogError("Invalid coordinate format!");
         }
     }
 
@@ -268,7 +257,7 @@ public class TeleportUI : MonoBehaviour
     // Helper method to delete a saved location
     public void DeleteSelectedLocation()
     {
-        if (savedLocationsDropdown.value <= 0) return; // Skip if header selected
+        if (savedLocationsDropdown.value <= 0) return; // skip if header selected
         
         string locationName = savedLocationsDropdown.options[savedLocationsDropdown.value].text;
         if (savedLocations.ContainsKey(locationName))
@@ -276,7 +265,6 @@ public class TeleportUI : MonoBehaviour
             savedLocations.Remove(locationName);
             UpdateDropdown();
             SaveLocationsToFile();
-            Debug.Log($"Deleted location: {locationName}");
             
             // Reset dropdown to header
             savedLocationsDropdown.value = 0;

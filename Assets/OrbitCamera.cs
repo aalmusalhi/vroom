@@ -3,19 +3,18 @@ using UnityEngine.InputSystem;
 
 public class OrbitCamera : MonoBehaviour
 {
-    [Header("Target Settings")]
-    public Transform target;           // The car to orbit around
-    public float distance = 40.0f;     // Distance from target
-    public float height = 2.0f;        // Height offset from target
+    [Header("Target settings")]
+    public Transform target; // the car to orbit the camera around
+    public float distance = 40.0f; // orbit radius
+    public float height = 2.0f; // height above the target
     
-    [Header("Rotation Settings")]
-    public float rotationSpeed = 100.0f; // Speed multiplier for rotation
-    public bool invertY = true;       // Whether to invert the Y axis
-    public float yMinLimit = -80f;     // Minimum vertical angle
-    public float yMaxLimit = 80f;      // Maximum vertical angle
+    [Header("Rotation settings")]
+    public float rotationSpeed = 100.0f; // speed multiplier for rotation
+    public float yMinLimit = -80f; // minimum vertical angle
+    public float yMaxLimit = 80f; // maximum vertical angle
     
-    [Header("Default Camera")]
-    public Transform defaultCameraTransform; // Reference to a transform with default camera position/rotation
+    [Header("Default camera")]
+    public Transform defaultCameraTransform; // reference to default camera transform
     
     // Internal tracking variables
     private float x = 0.0f;
@@ -25,7 +24,7 @@ public class OrbitCamera : MonoBehaviour
     
     void Start()
     {
-        // Initialize rotation angles based on the camera's starting position
+        // Initialise rotation angles based on the camera's starting position
         Vector3 angles = transform.eulerAngles;
         x = angles.y;
         y = angles.x;
@@ -33,64 +32,34 @@ public class OrbitCamera : MonoBehaviour
         // Store original position and rotation
         originalPosition = transform.position;
         originalRotation = transform.rotation;
-        
-        // Ensure the script works even if the target isn't set in the Inspector
-        if (target == null)
-        {
-            Debug.LogWarning("Orbit camera has no target, searching for car...");
-            // Try to find the car by tag or name
-            GameObject car = GameObject.FindWithTag("Player");
-            if (car == null) car = GameObject.Find("Car");
-            if (car != null)
-            {
-                target = car.transform;
-            }
-            else
-            {
-                Debug.LogError("Orbit camera could not find a target!");
-            }
-        }
     }
     
     void LateUpdate()
     {
-        if (target == null)
-            return;
-
-        // Get input from arrow keys to control rotation using the new Unity Input System
+        // Get input from arrow keys to control rotation
         if (Keyboard.current.leftArrowKey.isPressed)
-        {
-            x += rotationSpeed * Time.deltaTime;  // Rotate left
-        }
+            x += rotationSpeed * Time.deltaTime;
         if (Keyboard.current.rightArrowKey.isPressed)
-        {
-            x -= rotationSpeed * Time.deltaTime;  // Rotate right
-        }
+            x -= rotationSpeed * Time.deltaTime;
         if (Keyboard.current.upArrowKey.isPressed)
-        {
-            float invertFactor = invertY ? -1 : 1;
-            y -= rotationSpeed * Time.deltaTime * invertFactor;  // Rotate up
-        }
+            y += rotationSpeed * Time.deltaTime;
         if (Keyboard.current.downArrowKey.isPressed)
-        {
-            float invertFactor = invertY ? -1 : 1;
-            y += rotationSpeed * Time.deltaTime * invertFactor;  // Rotate down
-        }
+            y -= rotationSpeed * Time.deltaTime;
 
-        // Clamp vertical rotation (Y-axis)
+        // Clamp vertical rotation
         y = ClampAngle(y, yMinLimit, yMaxLimit);
 
         // Calculate rotation and position
         Quaternion rotation = Quaternion.Euler(y, x, 0);
-        Vector3 negDistance = new Vector3(0.0f, height, -distance);
-        Vector3 position = rotation * negDistance + target.position;
+        Vector3 offset = new Vector3(0.0f, height, -distance);
+        Vector3 position = rotation * offset + target.position;
         
         // Apply rotation and position to camera
         transform.rotation = rotation;
         transform.position = position;
     }
     
-    // Helper method to clamp angles
+    // Helper method to clamp angles between specified limits
     private float ClampAngle(float angle, float min, float max)
     {
         if (angle < -360F)

@@ -3,52 +3,37 @@ using UnityEngine.UI;
 
 public class SimpleCameraToggle : MonoBehaviour
 {
-    public OrbitCamera orbitCamera;       // Reference to your orbit camera script
-    public Toggle cameraToggle;           // Reference to UI Toggle
-
-    // Simple follow camera variables
-    public Transform target;              // Car to follow
-    public Vector3 followOffset = new Vector3(0f, -0.1f, 0.05f);
-    private bool firstUpdate = true;
+    // Components to link
+    public OrbitCamera orbitCamera; // Orbit camera script reference
+    public Toggle cameraToggle; // UI toggle
+    public Transform target; // this should be the car
+    public Vector3 followOffset = new Vector3(0f, -0.1f, 0.05f); //fixed camera offset
     
     private void Start()
-    {
-        // Find orbit camera if not assigned
-        if (orbitCamera == null)
-            orbitCamera = GetComponent<OrbitCamera>();
+    { 
+        // Add listener for camera mode toggle
+        cameraToggle.onValueChanged.AddListener(ToggleCameraMode);
             
-        // Find target if not assigned and orbit camera has one
-        if (target == null && orbitCamera != null)
-            target = orbitCamera.target;
-            
-        // Make sure toggle is properly set up
-        if (cameraToggle != null)
-        {
-            cameraToggle.onValueChanged.AddListener(ToggleCameraMode);
-            
-            // Set initial toggle state (ON = free camera, OFF = locked camera)
-            cameraToggle.isOn = true;
-            orbitCamera.enabled = true;
-        }
+        // Start with free orbital camera on by default
+        cameraToggle.isOn = true;
+        orbitCamera.enabled = true;
     }
     
+    // Called after all other update methods
     private void LateUpdate()
     {
         // Only run default camera behavior if orbit camera is disabled
-        if (!orbitCamera.enabled && target != null)
+        if (!orbitCamera.enabled)
         {
-            // Simple default follow camera behavior
-            Vector3 desiredPosition = target.TransformPoint(followOffset);
-            transform.position = Vector3.Lerp(transform.position, desiredPosition, 5f * Time.deltaTime);
+            Vector3 targetPosition = target.TransformPoint(followOffset);
+            transform.position = Vector3.Lerp(transform.position, targetPosition, 5f * Time.deltaTime);
             transform.LookAt(target);
         }
     }
     
-    // Directly toggle orbit camera on/off
+    // Toggle for free camera (on) or fixed camera (off)
     public void ToggleCameraMode(bool isOn)
     {
-        // ON = Free camera, OFF = Default camera
         orbitCamera.enabled = isOn;
-        Debug.Log("Camera mode toggled: " + (isOn ? "Free Camera" : "Default Camera"));
     }
 }

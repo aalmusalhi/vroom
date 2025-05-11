@@ -18,7 +18,7 @@ public class TerrainTracker : MonoBehaviour
     public float collisionDistance = 1.0f; // distance to check for collisions
     public float pushBackForce = 100.0f; // how strongly to push back from collisions
 
-    [Header("UI References")]
+    [Header("UI references")]
     public Toggle rotationToggle;
     public Toggle collisionToggle;
     public Toggle recoveryToggle;

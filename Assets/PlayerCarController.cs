@@ -3,7 +3,6 @@ using UnityEngine.InputSystem;
 
 public class PlayerCarController : MonoBehaviour
 {
-    // Define motion settings
     [Header("Motion settings")]
     public float maxSpeed = 200f; // maximum speed of the car
     public float rotationSpeed = 60f; // how fast the car turns
